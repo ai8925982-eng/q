@@ -1,0 +1,28 @@
+name: build
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # 1) 32-bit host process
+      - name: Configure Bridge32Host (x86)
+        run: cmake -S . -B build32 -A Win32 -DBRIDGE_TARGET=host32
+      - name: Build Bridge32Host
+        run: cmake --build build32 --config Release
+
+      # 2) 64-bit VST3 wrapper (copies the exe next to the .vst3 binary)
+      - name: Configure VST3 (x64)
+        run: cmake -S . -B build64 -A x64 -DBRIDGE_TARGET=plugin "-DBRIDGE32_EXE=${{ github.workspace }}/build32/host32/Release/Bridge32Host.exe"
+      - name: Build VST3
+        run: cmake --build build64 --config Release
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: VSTBridge-VST3
+          path: build64/plugin/VSTBridge_artefacts/Release/VST3/
